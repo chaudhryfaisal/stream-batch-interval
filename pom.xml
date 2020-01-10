@@ -21,7 +21,7 @@
 
     <groupId>com.github.chaudhryfaisal</groupId>
     <artifactId>stream-batch-interval</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -119,7 +119,7 @@
         <connection>scm:git:git://github.com/chaudhryfaisal/stream-batch-interval.git</connection>
         <developerConnection>scm:git:git@github.com:chaudhryfaisal/stream-batch-interval.git</developerConnection>
         <url>https://github.com/chaudhryfaisal/stream-batch-interval</url>
-        <tag>HEAD</tag>
+        <tag>stream-batch-interval-0.1.0</tag>
     </scm>
 
     <profiles>
