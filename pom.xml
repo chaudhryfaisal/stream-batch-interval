@@ -22,7 +22,7 @@
 
     <groupId>com.github.chaudhryfaisal</groupId>
     <artifactId>stream-batch-interval</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.2</version>
     <packaging>jar</packaging>
 
     <dependencies>

@@ -29,6 +29,8 @@ public final class BatchProcessor<B, E> {
     protected final AtomicBoolean INIT = new AtomicBoolean(false);
 
     @Builder.Default
+    private boolean debug = false;
+    @Builder.Default
     private int actions = DEFAULT_ACTION_SIZE;
     @Builder.Default
     private int flushInterval = DEFAULT_FLUSH_INTERVAL;
@@ -47,10 +49,21 @@ public final class BatchProcessor<B, E> {
 
 
     private synchronized void init() {
+        if (actions <= 0) {
+            actions = DEFAULT_ACTION_SIZE;
+        }
+        if (flushInterval <= 0) {
+            flushInterval = DEFAULT_FLUSH_INTERVAL;
+        }
+        if (bufferLimit <= 0) {
+            bufferLimit = DEFAULT_BATCH_SIZE;
+        }
+        if (jitterInterval <= 0) {
+            jitterInterval = DEFAULT_JITTER_INTERVAL;
+        }
         Runnable flushRunnable = new Runnable() {
             @Override
             public void run() {
-                // write doesn't throw any exceptions
                 drain();
                 int jitterInterval = (int) (Math.random() * BatchProcessor.this.jitterInterval);
                 BatchProcessor.this.scheduler.schedule(this, BatchProcessor.this.flushInterval + jitterInterval, BatchProcessor.this.flushIntervalUnit);
@@ -58,6 +71,9 @@ public final class BatchProcessor<B, E> {
         };
         // Flush at specified Rate
         this.scheduler.schedule(flushRunnable, this.flushInterval + (int) (Math.random() * BatchProcessor.this.jitterInterval), this.flushIntervalUnit);
+        if (debug) {
+            System.out.printf("BatchProcessor:init %s\n", this);
+        }
     }
 
     /**
@@ -65,6 +81,9 @@ public final class BatchProcessor<B, E> {
      * Note: used System.err to avoid logger dependency to be used as log shipped
      */
     void drain() {
+        if (debug) {
+            System.out.println("BatchProcessor:drain");
+        }
         List<E> events = new ArrayList<>();
         try {
             if (this.queue.isEmpty()) {
@@ -72,10 +91,15 @@ public final class BatchProcessor<B, E> {
             }
             events = new ArrayList<>(this.queue.size());
             this.queue.drainTo(events);
+            if (debug) {
+                System.out.println("BatchProcessor:drain events=" + events.size());
+            }
             partition(events, bufferLimit).forEach(p -> writer.write(sink, sink.listToBulkPayload(p)));
         } catch (Throwable t) {
-            exceptionHandler.accept(events, t);
-            System.err.println("BatchProcessor -> Batch could not be sent. Data will be lost \n" + t.getLocalizedMessage());
+            if (exceptionHandler != null) {
+                exceptionHandler.accept(events, t);
+            }
+            System.err.println("BatchProcessor: Batch could not be sent. Data will be lost \n" + t.getLocalizedMessage());
         }
     }
 
@@ -119,9 +143,11 @@ public final class BatchProcessor<B, E> {
     /**
      * Method to split list into batch size to be processed in batches
      */
-    static <T> List<List<T>> partition(List<T> list, final int size) {
+    static <T> List<List<T>> partition(List<T> list, int size) {
         List<List<T>> parts = new ArrayList<List<T>>();
-
+        if (size == 0) { //size = 0 would enter infinite loop
+            size = 1;
+        }
         final int N = list.size();
         for (int i = 0; i < N; i += size) {
             parts.add(new ArrayList<T>(
